@@ -127,6 +127,20 @@ namespace BovineLabs.Core.Iterators
             return removed;
         }
 
+        internal static bool SetValue(DynamicBuffer<byte> buffer, ref NativeMultiHashMapIterator<TKey> it, ref TValue item)
+        {
+            var data = buffer.AsData<TKey, TValue>();
+
+            int entryIdx = it.EntryIndex;
+            if (entryIdx < 0 || entryIdx >= data->KeyCapacity)
+            {
+                return false;
+            }
+
+            UnsafeUtility.WriteArrayElement(data->Values, entryIdx, item);
+            return true;
+        }
+
         internal static bool TryGetFirstValueAtomic(DynamicHashMapData* data, TKey key, out TValue item, out NativeMultiHashMapIterator<TKey> it)
         {
             it.key = key;

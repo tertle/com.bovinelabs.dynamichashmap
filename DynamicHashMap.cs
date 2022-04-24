@@ -49,6 +49,38 @@ namespace BovineLabs.Core.Iterators
 
         private DynamicHashMapData* BufferReadOnly => this.data.AsDataReadOnly<TKey, TValue>();
 
+        /// <summary> Gets and sets values by key. </summary>
+        /// <remarks> Getting a key that is not present will throw. Setting a key that is not already present will add the key. </remarks>
+        /// <param name="key"> The key to look up. </param>
+        /// <value> The value associated with the key. </value>
+        /// <exception cref="ArgumentException"> For getting, thrown if the key was not present. </exception>
+        public TValue this[TKey key]
+        {
+            get
+            {
+                if (this.TryGetValue(key, out var res))
+                {
+                    return res;
+                }
+
+                ThrowKeyNotPresent(key);
+
+                return default;
+            }
+
+            set
+            {
+                if (DynamicHashMapBase<TKey, TValue>.TryGetFirstValueAtomic(this.BufferReadOnly, key, out var item, out var iterator))
+                {
+                    DynamicHashMapBase<TKey, TValue>.SetValue(this.data, ref iterator, ref value);
+                }
+                else
+                {
+                    DynamicHashMapBase<TKey, TValue>.TryAdd(this.data, key, value, false);
+                }
+            }
+        }
+
         /// <summary> The current number of items in the container. </summary>
         /// <returns>The item count.</returns>
         public int Count() => DynamicHashMapData.GetCount(this.BufferReadOnly);
@@ -157,6 +189,12 @@ namespace BovineLabs.Core.Iterators
             {
                 throw new InvalidOperationException($"Buffer has data but is too small to be a header.");
             }
+        }
+
+        [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
+        private static void ThrowKeyNotPresent(TKey key)
+        {
+            throw new ArgumentException($"Key: {key} is not present in the NativeHashMap.");
         }
 
         private void Allocate()
